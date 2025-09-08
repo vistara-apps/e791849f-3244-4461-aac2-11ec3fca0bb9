@@ -10,9 +10,10 @@ import { SearchInput } from '@/components/SearchInput';
 import { ChecklistView } from '@/components/ChecklistView';
 import { LegalTermDisplay } from '@/components/LegalTermDisplay';
 import { PurchaseModal } from '@/components/PurchaseModal';
+import { ProfileView } from '@/components/ProfileView';
 import { mockChecklists, mockGuides, mockTerms, mockAlerts } from '@/lib/data';
 import { Checklist, ScenarioGuide, LegalTerm, Alert } from '@/lib/types';
-import { Shield, Zap, BookOpen, Bell } from 'lucide-react';
+import { Shield, Zap, Bell } from 'lucide-react';
 
 type ViewMode = 'home' | 'checklist' | 'search' | 'alerts' | 'profile';
 
@@ -89,6 +90,34 @@ export default function HomePage() {
             <Name />
           </ConnectWallet>
         </Wallet>
+      </div>
+
+      {/* Quick Search */}
+      <div className="space-y-4">
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onClear={() => setSearchQuery('')}
+          placeholder="Search legal terms, checklists..."
+        />
+        
+        {searchQuery.trim() && filteredTerms.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-text-secondary">Quick Results</h3>
+            {filteredTerms.slice(0, 3).map(term => (
+              <div key={term.term} className="glass-card p-3 rounded-lg">
+                <h4 className="font-semibold text-text-primary text-sm">{term.term}</h4>
+                <p className="text-xs text-text-secondary line-clamp-2">{term.definition}</p>
+              </div>
+            ))}
+            <button
+              onClick={() => setCurrentView('search')}
+              className="text-primary text-sm font-medium hover:text-accent transition-colors"
+            >
+              View all {filteredTerms.length} results →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -276,13 +305,16 @@ export default function HomePage() {
       case 'alerts':
         return renderAlerts();
       case 'profile':
-        return (
-          <div className="text-center py-8">
-            <p className="text-text-secondary">Profile features coming soon!</p>
-          </div>
-        );
+        return <ProfileView purchasedItems={purchasedItems} />;
       default:
         return renderHome();
+    }
+  };
+
+  const handleNavigate = (view: ViewMode) => {
+    setCurrentView(view);
+    if (view === 'home') {
+      setSelectedChecklist(null);
     }
   };
 
@@ -295,6 +327,8 @@ export default function HomePage() {
           setCurrentView('home');
           setSelectedChecklist(null);
         }}
+        currentView={currentView}
+        onNavigate={handleNavigate}
       >
         {getContent()}
       </AppShell>
@@ -307,55 +341,6 @@ export default function HomePage() {
         price={purchaseModal.item?.price || '0'}
         description={purchaseModal.item?.description || ''}
       />
-
-      {/* Bottom Navigation Override */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-surface border-t border-gray-200">
-        <div className="px-4 py-2 max-w-sm mx-auto">
-          <div className="flex items-center justify-around">
-            <button
-              onClick={() => setCurrentView('home')}
-              className={`flex flex-col items-center space-y-1 py-2 px-3 transition-colors duration-200 ${
-                currentView === 'home' ? 'text-primary' : 'text-text-secondary hover:text-primary'
-              }`}
-            >
-              <Shield className="w-5 h-5" />
-              <span className="text-xs font-medium">Home</span>
-            </button>
-            <button
-              onClick={() => setCurrentView('search')}
-              className={`flex flex-col items-center space-y-1 py-2 px-3 transition-colors duration-200 ${
-                currentView === 'search' ? 'text-primary' : 'text-text-secondary hover:text-primary'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              <span className="text-xs">Search</span>
-            </button>
-            <button
-              onClick={() => setCurrentView('alerts')}
-              className={`flex flex-col items-center space-y-1 py-2 px-3 transition-colors duration-200 relative ${
-                currentView === 'alerts' ? 'text-primary' : 'text-text-secondary hover:text-primary'
-              }`}
-            >
-              <Bell className="w-5 h-5" />
-              <span className="text-xs">Alerts</span>
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-            </button>
-            <button
-              onClick={() => setCurrentView('profile')}
-              className={`flex flex-col items-center space-y-1 py-2 px-3 transition-colors duration-200 ${
-                currentView === 'profile' ? 'text-primary' : 'text-text-secondary hover:text-primary'
-              }`}
-            >
-              <Wallet>
-                <ConnectWallet>
-                  <Name />
-                </ConnectWallet>
-              </Wallet>
-              <span className="text-xs">Profile</span>
-            </button>
-          </div>
-        </div>
-      </nav>
     </>
   );
 }
