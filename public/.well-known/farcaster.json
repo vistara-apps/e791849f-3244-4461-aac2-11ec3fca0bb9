@@ -1,0 +1,30 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "frame": {
+    "version": "1",
+    "name": "RightCheck",
+    "subtitle": "Built with Zara",
+    "description": "RightCheck is a Base Mini App built with Zara.",
+    "iconUrl": "https://0co.to/images/zara-2.png",
+    "homeUrl": "https://e791849f32444461aac211ec3fca0bb9-6dqw.vercel.app",
+    "splashImageUrl": "https://e791849f32444461aac211ec3fca0bb9-6dqw.vercel.app/splash.png",
+    "splashBackgroundColor": "#000000",
+    "heroImageUrl": "https://e791849f32444461aac211ec3fca0bb9-6dqw.vercel.app/image.png",
+    "tagline": "RightCheck",
+    "screenshotUrls": [
+      "https://e791849f32444461aac211ec3fca0bb9-6dqw.vercel.app/screenshot.png",
+      "https://e791849f32444461aac211ec3fca0bb9-6dqw.vercel.app/screenshot.png"
+    ],
+    "primaryCategory": "social",
+    "tags": [
+      "base",
+      "miniapp",
+      "onchainkit"
+    ],
+    "webhookUrl": "https://e791849f32444461aac211ec3fca0bb9-6dqw.vercel.app/api/webhook"
+  }
+}
