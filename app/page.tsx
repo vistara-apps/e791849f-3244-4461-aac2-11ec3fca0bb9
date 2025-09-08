@@ -10,6 +10,7 @@ import { SearchInput } from '@/components/SearchInput';
 import { ChecklistView } from '@/components/ChecklistView';
 import { LegalTermDisplay } from '@/components/LegalTermDisplay';
 import { PurchaseModal } from '@/components/PurchaseModal';
+import { PaymentTest } from '@/components/PaymentTest';
 import { mockChecklists, mockGuides, mockTerms, mockAlerts } from '@/lib/data';
 import { Checklist, ScenarioGuide, LegalTerm, Alert } from '@/lib/types';
 import { Shield, Zap, BookOpen, Bell } from 'lucide-react';
@@ -55,11 +56,13 @@ export default function HomePage() {
     }
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = async (transactionHash?: string) => {
     if (!purchaseModal.item) return;
     
-    // Simulate purchase transaction
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('Purchase completed:', {
+      itemId: purchaseModal.item.id,
+      transactionHash,
+    });
     
     setPurchasedItems(prev => new Set([...prev, purchaseModal.item!.id]));
     setPurchaseModal({ isOpen: false, item: null });
@@ -277,8 +280,14 @@ export default function HomePage() {
         return renderAlerts();
       case 'profile':
         return (
-          <div className="text-center py-8">
-            <p className="text-text-secondary">Profile features coming soon!</p>
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-lg font-semibold text-text-primary mb-2">Developer Tools</h2>
+              <p className="text-sm text-text-secondary">
+                Test and verify the x402 payment integration
+              </p>
+            </div>
+            <PaymentTest />
           </div>
         );
       default:
@@ -306,6 +315,7 @@ export default function HomePage() {
         title={purchaseModal.item?.title || ''}
         price={purchaseModal.item?.price || '0'}
         description={purchaseModal.item?.description || ''}
+        itemId={purchaseModal.item?.id || ''}
       />
 
       {/* Bottom Navigation Override */}
