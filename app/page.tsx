@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
 import { ConnectWallet, Wallet } from '@coinbase/onchainkit/wallet';
 import { Name } from '@coinbase/onchainkit/identity';
+import { Toaster } from 'react-hot-toast';
 import { AppShell } from '@/components/AppShell';
 import { ActionCard } from '@/components/ActionCard';
 import { SearchInput } from '@/components/SearchInput';
@@ -13,6 +14,8 @@ import { PurchaseModal } from '@/components/PurchaseModal';
 import { mockChecklists, mockGuides, mockTerms, mockAlerts } from '@/lib/data';
 import { Checklist, ScenarioGuide, LegalTerm, Alert } from '@/lib/types';
 import { Shield, Zap, BookOpen, Bell } from 'lucide-react';
+import { useAppStore } from '@/lib/store';
+import { miniKitService, analyticsService } from '@/lib/api';
 
 type ViewMode = 'home' | 'checklist' | 'search' | 'alerts' | 'profile';
 
@@ -26,7 +29,14 @@ export default function HomePage() {
     isOpen: boolean;
     item: Checklist | ScenarioGuide | null;
   }>({ isOpen: false, item: null });
-  const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
+  
+  const { 
+    isPurchased, 
+    addPurchasedItem, 
+    getChecklistProgress,
+    addToSearchHistory,
+    getUnreadAlertsCount 
+  } = useAppStore();
 
   useEffect(() => {
     setFrameReady();
@@ -41,13 +51,16 @@ export default function HomePage() {
           term.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredTerms(filtered);
+      
+      // Track search
+      analyticsService.trackSearch(searchQuery, filtered.length);
     } else {
       setFilteredTerms([]);
     }
   }, [searchQuery]);
 
   const handleChecklistClick = (checklist: Checklist) => {
-    if (checklist.premium && !purchasedItems.has(checklist.id)) {
+    if (checklist.premium && !isPurchased(checklist.id)) {
       setPurchaseModal({ isOpen: true, item: checklist });
     } else {
       setSelectedChecklist(checklist);
@@ -58,15 +71,31 @@ export default function HomePage() {
   const handlePurchase = async () => {
     if (!purchaseModal.item) return;
     
-    // Simulate purchase transaction
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setPurchasedItems(prev => new Set([...prev, purchaseModal.item!.id]));
-    setPurchaseModal({ isOpen: false, item: null });
-    
-    if (purchaseModal.item && 'steps' in purchaseModal.item) {
-      setSelectedChecklist(purchaseModal.item);
-      setCurrentView('checklist');
+    try {
+      // Use MiniKit service for purchase
+      const purchase = await miniKitService.purchaseContent(
+        purchaseModal.item.id,
+        purchaseModal.item.price || '0',
+        purchaseModal.item.title
+      );
+      
+      // Track purchase
+      analyticsService.trackPurchase(
+        purchaseModal.item.id,
+        purchaseModal.item.price || '0',
+        'steps' in purchaseModal.item ? 'checklist' : 'guide'
+      );
+      
+      addPurchasedItem(purchaseModal.item.id);
+      setPurchaseModal({ isOpen: false, item: null });
+      
+      if (purchaseModal.item && 'steps' in purchaseModal.item) {
+        setSelectedChecklist(purchaseModal.item);
+        setCurrentView('checklist');
+      }
+    } catch (error) {
+      console.error('Purchase failed:', error);
+      // Handle error (show toast, etc.)
     }
   };
 
@@ -111,6 +140,9 @@ export default function HomePage() {
               premium={checklist.premium}
               price={checklist.price}
               onClick={() => handleChecklistClick(checklist)}
+              itemId={checklist.id}
+              showFavorite={true}
+              progress={getChecklistProgress(checklist.id, checklist.steps.length)}
             />
           ))}
       </div>
@@ -133,6 +165,7 @@ export default function HomePage() {
             timestamp={alert.timestamp}
             actionRequired={alert.actionRequired}
             onClick={() => setCurrentView('alerts')}
+            itemId={alert.id}
           />
         ))}
       </div>
@@ -155,6 +188,9 @@ export default function HomePage() {
             premium={checklist.premium}
             price={checklist.price}
             onClick={() => handleChecklistClick(checklist)}
+            itemId={checklist.id}
+            showFavorite={true}
+            progress={getChecklistProgress(checklist.id, checklist.steps.length)}
           />
         ))}
       </div>
@@ -238,6 +274,7 @@ export default function HomePage() {
           urgency={alert.urgency}
           timestamp={alert.timestamp}
           actionRequired={alert.actionRequired}
+          itemId={alert.id}
         />
       ))}
     </div>
@@ -356,6 +393,20 @@ export default function HomePage() {
           </div>
         </div>
       </nav>
+      
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: 'hsl(0, 0%, 100%)',
+            color: 'hsl(210, 30%, 15%)',
+            border: '1px solid hsl(215, 30%, 95%)',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px hsla(210, 30%, 10%, 0.08)',
+          },
+        }}
+      />
     </>
   );
 }

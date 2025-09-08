@@ -72,6 +72,14 @@ const config: Config = {
           4: "var(--chart-4)",
           5: "var(--chart-5)",
         },
+        // Custom design system colors used in components
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        'text-primary': "var(--text-primary)",
+        'text-secondary': "var(--text-secondary)",
+      },
+      boxShadow: {
+        'card': 'var(--shadow-card)',
       },
       borderRadius: {
         lg: "var(--radius)",
