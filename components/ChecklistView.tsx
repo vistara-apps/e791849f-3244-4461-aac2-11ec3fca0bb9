@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle2, AlertTriangle, Info, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle2, AlertTriangle, Info, ArrowLeft, Share2, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Checklist, ChecklistStep } from '@/lib/types';
 import { StepIndicator } from './StepIndicator';
-import { getCategoryIcon } from '@/lib/utils';
+import { getCategoryIcon, cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
+import { analyticsService, farcasterService } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface ChecklistViewProps {
   checklist: Checklist;
@@ -13,26 +17,60 @@ interface ChecklistViewProps {
 }
 
 export function ChecklistView({ checklist, onBack, onPurchase }: ChecklistViewProps) {
-  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const { 
+    toggleStepCompletion, 
+    isStepCompleted, 
+    getChecklistProgress,
+    toggleFavorite,
+    isFavorite 
+  } = useAppStore();
+  
   const [currentStep, setCurrentStep] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
+  
+  const progress = getChecklistProgress(checklist.id, checklist.steps.length);
+  const isChecklistFavorite = isFavorite(checklist.id);
+  const categoryIcon = getCategoryIcon(checklist.category);
+
+  useEffect(() => {
+    // Track checklist view
+    analyticsService.trackChecklistView(checklist.id, checklist.category);
+  }, [checklist.id, checklist.category]);
 
   const toggleStep = (stepId: string) => {
-    const newCompleted = new Set(completedSteps);
-    if (newCompleted.has(stepId)) {
-      newCompleted.delete(stepId);
-    } else {
-      newCompleted.add(stepId);
+    toggleStepCompletion(checklist.id, stepId);
+    analyticsService.trackStepCompletion(checklist.id, stepId);
+    
+    // Show completion toast
+    if (!isStepCompleted(checklist.id, stepId)) {
+      toast.success('Step completed! 🎉');
     }
-    setCompletedSteps(newCompleted);
   };
 
   const getStepVariant = (index: number, stepId: string) => {
-    if (completedSteps.has(stepId)) return 'completed';
+    if (isStepCompleted(checklist.id, stepId)) return 'completed';
     if (index === currentStep) return 'active';
     return 'default';
   };
 
-  const categoryIcon = getCategoryIcon(checklist.category);
+  const handleShare = async () => {
+    try {
+      const success = await farcasterService.shareCompletion(checklist.title);
+      if (success) {
+        toast.success('Shared on Farcaster! 🎉');
+        setShowShareModal(false);
+      } else {
+        toast.error('Failed to share. Please try again.');
+      }
+    } catch (error) {
+      toast.error('Failed to share. Please try again.');
+    }
+  };
+
+  const handleFavoriteToggle = () => {
+    toggleFavorite(checklist.id);
+    toast.success(isChecklistFavorite ? 'Removed from favorites' : 'Added to favorites');
+  };
 
   if (checklist.premium && !onPurchase) {
     return (
